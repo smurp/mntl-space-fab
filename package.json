@@ -10,7 +10,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "dev": "python3 -m http.server 8080",
+    "dev": "npx http-server . -p 8003 -c-1",
     "test": "echo 'No tests yet' && exit 0"
   },
   "keywords": [
