@@ -73,7 +73,10 @@ class MntlSpaceFabWC extends HTMLElement {
   
   connectedCallback() {
     this.render();
-    this.attachEventListeners();
+  }
+  
+  needsIdentity(type) {
+    return type.label.includes('{identity}');
   }
   
   parseUri(uri) {
@@ -87,7 +90,7 @@ class MntlSpaceFabWC extends HTMLElement {
         this._mentalSpace = type.value;
         
         // Check if this type needs identity
-        if (type.label.includes('{identity}') && this._currentIdentity) {
+        if (this.needsIdentity(type) && this._currentIdentity) {
           // Format: mntl:open/identity/path
           const afterBase = uri.substring(basePrefix.length); // e.g., "/mailto:alice@ex.io/notes"
           
@@ -129,7 +132,7 @@ class MntlSpaceFabWC extends HTMLElement {
     const cleanPath = this._path.startsWith('/') ? this._path : '/' + this._path;
     
     // If type has {identity} placeholder and we have an identity, insert it
-    if (type.label.includes('{identity}') && this._currentIdentity) {
+    if (this.needsIdentity(type) && this._currentIdentity) {
       // Format: mntl:open/mailto:alice@ex.io/path
       return type.value + '/' + this._currentIdentity + cleanPath;
     } else {
@@ -143,15 +146,6 @@ class MntlSpaceFabWC extends HTMLElement {
     return type ? type.description : '';
   }
   
-  getDisplayLabel() {
-    const type = this._acceptedTypes.find(t => t.value === this._mentalSpace);
-    if (!type) return this._mentalSpace;
-    
-    // Show actual identity or placeholder
-    const identity = this._currentIdentity || '{identity}';
-    return type.label.replace('{identity}', identity);
-  }
-  
   normalizePath(path) {
     // Ensure path starts with /
     if (!path) return '/';
@@ -159,6 +153,19 @@ class MntlSpaceFabWC extends HTMLElement {
   }
   
   render() {
+    const identity = this._currentIdentity || '{identity}';
+    const hasIdentity = !!this._currentIdentity;
+    
+    // If current selection needs identity but we don't have one, switch to publ
+    const currentType = this._acceptedTypes.find(t => t.value === this._mentalSpace);
+    if (currentType && this.needsIdentity(currentType) && !hasIdentity) {
+      // Find first type that doesn't need identity
+      const fallbackType = this._acceptedTypes.find(t => !this.needsIdentity(t));
+      if (fallbackType) {
+        this._mentalSpace = fallbackType.value;
+      }
+    }
+    
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -189,6 +196,11 @@ class MntlSpaceFabWC extends HTMLElement {
         .mental-space-select option {
           direction: ltr;
           text-align: left;
+        }
+        
+        .mental-space-select option:disabled {
+          color: #999;
+          font-style: italic;
         }
         
         .mental-space-select:focus {
@@ -226,10 +238,11 @@ class MntlSpaceFabWC extends HTMLElement {
       <div class="fab-container">
         <select class="mental-space-select" id="mental-space">
           ${this._acceptedTypes.map(type => {
-            const identity = this._currentIdentity || '{identity}';
             const label = type.label.replace('{identity}', identity);
             const selected = this._mentalSpace === type.value ? 'selected' : '';
-            return `<option value="${type.value}" ${selected}>${label}</option>`;
+            // Disable options that need identity when we don't have one
+            const disabled = (this.needsIdentity(type) && !hasIdentity) ? 'disabled' : '';
+            return `<option value="${type.value}" ${selected} ${disabled}>${label}</option>`;
           }).join('')}
         </select>
         <input 
@@ -242,6 +255,12 @@ class MntlSpaceFabWC extends HTMLElement {
       </div>
       <div class="description" id="description">${this.getDescription()}</div>
     `;
+    
+    // Attach listeners after render
+    this.attachEventListeners();
+    
+    // Emit initial value
+    this.emitChange();
   }
   
   attachEventListeners() {

@@ -37,6 +37,18 @@
             margin-bottom: 10px;
             display: block;
         }
+        button {
+            margin: 5px;
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -46,14 +58,14 @@
         <h2>Basic Usage</h2>
         <label class="label">Select a graph:</label>
         <mntl-space-fab id="fab1"></mntl-space-fab>
-        <div class="output" id="output1">Selected: (none yet)</div>
+        <div class="output" id="output1">Selected: (loading...)</div>
     </div>
     
     <div class="demo-section">
         <h2>With Identity</h2>
         <label class="label">Authenticated as alice@example.com:</label>
         <mntl-space-fab id="fab2"></mntl-space-fab>
-        <div class="output" id="output2">Selected: (none yet)</div>
+        <div class="output" id="output2">Selected: (loading...)</div>
     </div>
     
     <div class="demo-section">
@@ -63,7 +75,7 @@
         <button onclick="getValue()">Get Current Value</button>
         <br><br>
         <mntl-space-fab id="fab3"></mntl-space-fab>
-        <div class="output" id="output3">Selected: (none yet)</div>
+        <div class="output" id="output3">Selected: (loading...)</div>
     </div>
     
     <script type="module" src="../src/mntl-space-fab.js"></script>
@@ -72,27 +84,47 @@
         customElements.whenDefined('mntl-space-fab').then(() => {
             // Demo 1: Basic
             const fab1 = document.getElementById('fab1');
+            const output1 = document.getElementById('output1');
+            
             fab1.addEventListener('graph-changed', (e) => {
-                document.getElementById('output1').textContent = 
-                    `Selected: ${e.detail.fullUri}`;
+                output1.textContent = `Selected: ${e.detail.fullUri}`;
             });
+            
+            // Trigger initial update
+            setTimeout(() => {
+                output1.textContent = `Selected: ${fab1.getValue()}`;
+            }, 100);
             
             // Demo 2: With Identity
             const fab2 = document.getElementById('fab2');
+            const output2 = document.getElementById('output2');
+            
             fab2.currentIdentity = 'mailto:alice@example.com';
             fab2.value = 'mntl:open/alice/notes';
+            
             fab2.addEventListener('graph-changed', (e) => {
-                document.getElementById('output2').textContent = 
-                    `Selected: ${e.detail.fullUri}`;
+                output2.textContent = `Selected: ${e.detail.fullUri}`;
             });
+            
+            // Trigger initial update
+            setTimeout(() => {
+                output2.textContent = `Selected: ${fab2.getValue()}`;
+            }, 100);
             
             // Demo 3: Programmatic
             const fab3 = document.getElementById('fab3');
+            const output3 = document.getElementById('output3');
+            
             fab3.currentIdentity = 'mailto:alice@example.com';
+            
             fab3.addEventListener('graph-changed', (e) => {
-                document.getElementById('output3').textContent = 
-                    `Selected: ${e.detail.fullUri}`;
+                output3.textContent = `Selected: ${e.detail.fullUri}`;
             });
+            
+            // Trigger initial update
+            setTimeout(() => {
+                output3.textContent = `Selected: ${fab3.getValue()}`;
+            }, 100);
         });
         
         function setScience() {
@@ -100,7 +132,8 @@
         }
         
         function setAliceNotes() {
-            document.getElementById('fab3').value = 'mntl:open/alice/notes';
+            const fab = document.getElementById('fab3');
+            fab.value = 'mntl:open/alice/notes';
         }
         
         function getValue() {
