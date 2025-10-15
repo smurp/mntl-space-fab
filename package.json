@@ -1,0 +1,34 @@
+{
+  "name": "@mmmlib/mntl-space-fab",
+  "version": "0.1.0",
+  "description": "Web component for MMM mental space graph selection (mntl: URN picker)",
+  "type": "module",
+  "main": "src/mntl-space-fab.js",
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "python3 -m http.server 8080",
+    "test": "echo 'No tests yet' && exit 0"
+  },
+  "keywords": [
+    "mmm",
+    "mental-space",
+    "graph-picker",
+    "web-component",
+    "semantic-web",
+    "rdf"
+  ],
+  "author": "Smurp",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smurp/mntl-space-fab.git"
+  },
+  "bugs": {
+    "url": "https://github.com/smurp/mntl-space-fab/issues"
+  },
+  "homepage": "https://github.com/smurp/mntl-space-fab#readme"
+}

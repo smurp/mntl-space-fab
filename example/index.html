@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Space Fab - Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .demo-section {
+            background: white;
+            padding: 30px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .output {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Monaco', monospace;
+            margin-top: 15px;
+            border-left: 4px solid #007bff;
+        }
+        .label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎛️ Mental Space Fab Demo</h1>
+    
+    <div class="demo-section">
+        <h2>Basic Usage</h2>
+        <label class="label">Select a graph:</label>
+        <mntl-space-fab id="fab1"></mntl-space-fab>
+        <div class="output" id="output1">Selected: (none yet)</div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>With Identity</h2>
+        <label class="label">Authenticated as alice@example.com:</label>
+        <mntl-space-fab id="fab2"></mntl-space-fab>
+        <div class="output" id="output2">Selected: (none yet)</div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Programmatic Control</h2>
+        <button onclick="setScience()">Set to Science</button>
+        <button onclick="setAliceNotes()">Set to Alice's Notes</button>
+        <button onclick="getValue()">Get Current Value</button>
+        <br><br>
+        <mntl-space-fab id="fab3"></mntl-space-fab>
+        <div class="output" id="output3">Selected: (none yet)</div>
+    </div>
+    
+    <script type="module" src="../src/mntl-space-fab.js"></script>
+    <script>
+        // Wait for component to be defined
+        customElements.whenDefined('mntl-space-fab').then(() => {
+            // Demo 1: Basic
+            const fab1 = document.getElementById('fab1');
+            fab1.addEventListener('graph-changed', (e) => {
+                document.getElementById('output1').textContent = 
+                    `Selected: ${e.detail.fullUri}`;
+            });
+            
+            // Demo 2: With Identity
+            const fab2 = document.getElementById('fab2');
+            fab2.currentIdentity = 'mailto:alice@example.com';
+            fab2.value = 'mntl:open/alice/notes';
+            fab2.addEventListener('graph-changed', (e) => {
+                document.getElementById('output2').textContent = 
+                    `Selected: ${e.detail.fullUri}`;
+            });
+            
+            // Demo 3: Programmatic
+            const fab3 = document.getElementById('fab3');
+            fab3.currentIdentity = 'mailto:alice@example.com';
+            fab3.addEventListener('graph-changed', (e) => {
+                document.getElementById('output3').textContent = 
+                    `Selected: ${e.detail.fullUri}`;
+            });
+        });
+        
+        function setScience() {
+            document.getElementById('fab3').value = 'mntl:publ/science';
+        }
+        
+        function setAliceNotes() {
+            document.getElementById('fab3').value = 'mntl:open/alice/notes';
+        }
+        
+        function getValue() {
+            const value = document.getElementById('fab3').getValue();
+            alert('Current value: ' + value);
+        }
+    </script>
+</body>
+</html>
