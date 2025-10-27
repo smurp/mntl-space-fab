@@ -27,9 +27,14 @@ class MntlSpaceFabWC extends HTMLElement {
     this._acceptedTypes = [...DEFAULT_ACCEPTED_TYPES];
     this._mentalSpace = 'mntl:publ';
     this._path = '/';
+    
+    // Path control properties
+    this._pathValue = null;
+    this._pathEditable = true;
+    this._showPath = true;
   }
   
-  // Getters/Setters
+  // Existing getters/setters
   get currentIdentity() {
     return this._currentIdentity;
   }
@@ -46,7 +51,6 @@ class MntlSpaceFabWC extends HTMLElement {
   set acceptedTypes(types) {
     if (Array.isArray(types) && types.length > 0) {
       this._acceptedTypes = types;
-      // Ensure current selection is valid
       if (!types.find(t => t.value === this._mentalSpace)) {
         this._mentalSpace = types[0].value;
       }
@@ -68,11 +72,42 @@ class MntlSpaceFabWC extends HTMLElement {
   }
   
   get path() {
-    return this._path;
+    return this._pathValue !== null ? this._pathValue : this._path;
+  }
+  
+  // New property: pathValue
+  get pathValue() {
+    return this._pathValue;
+  }
+  
+  set pathValue(value) {
+    this._pathValue = value;
+    this.render();
+  }
+  
+  // New property: pathEditable
+  get pathEditable() {
+    return this._pathEditable;
+  }
+  
+  set pathEditable(value) {
+    this._pathEditable = Boolean(value);
+    this.render();
+  }
+  
+  // New property: showPath
+  get showPath() {
+    return this._showPath;
+  }
+  
+  set showPath(value) {
+    this._showPath = Boolean(value);
+    this.render();
   }
   
   connectedCallback() {
     this.render();
+    this.attachEventListeners();
   }
   
   needsIdentity(type) {
@@ -82,247 +117,196 @@ class MntlSpaceFabWC extends HTMLElement {
   parseUri(uri) {
     if (!uri) return;
     
-    // Try each accepted type
     for (const type of this._acceptedTypes) {
-      const basePrefix = type.value; // e.g., "mntl:open"
+      const basePrefix = type.value;
       
       if (uri.startsWith(basePrefix)) {
         this._mentalSpace = type.value;
         
-        // Check if this type needs identity
         if (this.needsIdentity(type) && this._currentIdentity) {
-          // Format: mntl:open/identity/path
-          const afterBase = uri.substring(basePrefix.length); // e.g., "/mailto:alice@ex.io/notes"
-          
-          // Find the second slash to separate identity from path
+          const afterBase = uri.substring(basePrefix.length);
           const firstSlash = afterBase.indexOf('/');
+          
           if (firstSlash !== -1) {
             const secondSlash = afterBase.indexOf('/', firstSlash + 1);
             if (secondSlash !== -1) {
-              this._path = afterBase.substring(secondSlash); // e.g., "/notes"
+              this._path = afterBase.substring(secondSlash);
             } else {
               this._path = '/';
             }
-          } else {
-            this._path = '/';
           }
         } else {
-          // Format: mntl:publ/path (no identity)
-          this._path = uri.substring(basePrefix.length) || '/';
+          const afterBase = uri.substring(basePrefix.length);
+          this._path = afterBase || '/';
         }
-        
-        // Ensure path starts with /
-        if (!this._path.startsWith('/')) {
-          this._path = '/' + this._path;
-        }
-        
         return;
       }
     }
-    
-    // Fallback: just set path
-    this._path = uri.startsWith('/') ? uri : '/' + uri;
   }
   
   getFullUri() {
     const type = this._acceptedTypes.find(t => t.value === this._mentalSpace);
-    if (!type) return this._mentalSpace + this._path;
+    const effectivePath = this._pathValue !== null ? this._pathValue : this._path;
     
-    // Ensure path starts with /
-    const cleanPath = this._path.startsWith('/') ? this._path : '/' + this._path;
-    
-    // If type has {identity} placeholder and we have an identity, insert it
-    if (this.needsIdentity(type) && this._currentIdentity) {
-      // Format: mntl:open/mailto:alice@ex.io/path
-      return type.value + '/' + this._currentIdentity + cleanPath;
-    } else {
-      // Format: mntl:publ/path (no identity)
-      return type.value + cleanPath;
+    if (type && this.needsIdentity(type) && this._currentIdentity) {
+      const identity = this._currentIdentity.replace(/^mailto:/, '');
+      return `${this._mentalSpace}/${identity}${effectivePath}`;
     }
+    
+    return `${this._mentalSpace}${effectivePath}`;
   }
   
-  getDescription() {
-    const type = this._acceptedTypes.find(t => t.value === this._mentalSpace);
-    return type ? type.description : '';
-  }
-  
-  normalizePath(path) {
-    // Ensure path starts with /
-    if (!path) return '/';
-    return path.startsWith('/') ? path : '/' + path;
+  getValue() {
+    return this.getFullUri();
   }
   
   render() {
-    const identity = this._currentIdentity || '{identity}';
-    const hasIdentity = !!this._currentIdentity;
-    
-    // If current selection needs identity but we don't have one, switch to publ
     const currentType = this._acceptedTypes.find(t => t.value === this._mentalSpace);
-    if (currentType && this.needsIdentity(currentType) && !hasIdentity) {
-      // Find first type that doesn't need identity
-      const fallbackType = this._acceptedTypes.find(t => !this.needsIdentity(t));
-      if (fallbackType) {
-        this._mentalSpace = fallbackType.value;
-      }
-    }
+    const description = currentType ? currentType.description : '';
+    
+    const effectivePath = this._pathValue !== null ? this._pathValue : this._path;
+    const isPathDisabled = this._pathValue !== null || !this._pathEditable;
     
     this.shadowRoot.innerHTML = `
       <style>
         :host {
           display: block;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: system-ui, -apple-system, sans-serif;
         }
         
-        .fab-container {
+        .container {
           display: flex;
-          align-items: stretch;
+          flex-direction: column;
+          gap: 0.5rem;
         }
         
-        .mental-space-select {
-          padding: 10px 15px;
-          border: 2px solid #ced4da;
-          border-right: none;
-          border-radius: 6px 0 0 6px;
-          font-size: 14px;
+        .input-row {
+          display: flex;
+          gap: 0;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          overflow: hidden;
           background: white;
+        }
+        
+        .input-row:focus-within {
+          outline: 2px solid #0066cc;
+          outline-offset: 1px;
+        }
+        
+        select {
+          flex: 0 0 auto;
+          padding: 0.5rem;
+          border: none;
+          background: white;
+          font-size: 0.9rem;
           cursor: pointer;
-          font-family: 'Monaco', 'Courier New', monospace;
-          min-width: 240px;
-          color: #495057;
-          text-align: right;
-          direction: rtl;
-        }
-        
-        .mental-space-select option {
-          direction: ltr;
-          text-align: left;
-        }
-        
-        .mental-space-select option:disabled {
-          color: #999;
-          font-style: italic;
-        }
-        
-        .mental-space-select:focus {
           outline: none;
-          border-color: #80bdff;
-          box-shadow: -0.2rem 0 0 0.2rem rgba(0, 123, 255, 0.25);
-          z-index: 1;
         }
         
-        .path-input {
+        select:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        
+        input {
           flex: 1;
-          padding: 10px 15px;
-          border: 2px solid #ced4da;
-          border-radius: 0 6px 6px 0;
-          font-size: 14px;
-          font-family: 'Monaco', 'Courier New', monospace;
-          color: #495057;
+          padding: 0.5rem;
+          border: none;
+          border-left: 1px solid #e0e0e0;
+          font-size: 0.9rem;
+          outline: none;
+          font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
         }
         
-        .path-input:focus {
-          outline: none;
-          border-color: #80bdff;
-          box-shadow: 0.2rem 0 0 0.2rem rgba(0, 123, 255, 0.25);
-          z-index: 1;
+        input:disabled {
+          background: #f5f5f5;
+          color: #666;
+          cursor: not-allowed;
         }
         
         .description {
-          font-size: 12px;
-          color: #6c757d;
-          margin-top: 6px;
-          font-style: italic;
+          font-size: 0.85rem;
+          color: #666;
+          padding: 0.25rem 0.5rem;
         }
       </style>
       
-      <div class="fab-container">
-        <select class="mental-space-select" id="mental-space">
-          ${this._acceptedTypes.map(type => {
-            const label = type.label.replace('{identity}', identity);
-            const selected = this._mentalSpace === type.value ? 'selected' : '';
-            // Disable options that need identity when we don't have one
-            const disabled = (this.needsIdentity(type) && !hasIdentity) ? 'disabled' : '';
-            return `<option value="${type.value}" ${selected} ${disabled}>${label}</option>`;
-          }).join('')}
-        </select>
-        <input 
-          type="text" 
-          class="path-input" 
-          id="path-input"
-          placeholder="/path"
-          value="${this._path}"
-        />
+      <div class="container">
+        <div class="input-row">
+          <select id="mental-space">
+            ${this._acceptedTypes.map(type => {
+              const needsId = this.needsIdentity(type);
+              const disabled = needsId && !this._currentIdentity;
+              const label = type.label.replace('{identity}', 
+                this._currentIdentity ? this._currentIdentity.replace(/^mailto:/, '') : '{identity}');
+              
+              return `
+                <option 
+                  value="${type.value}" 
+                  ${type.value === this._mentalSpace ? 'selected' : ''}
+                  ${disabled ? 'disabled' : ''}
+                >
+                  ${label}
+                </option>
+              `;
+            }).join('')}
+          </select>
+          
+          ${this._showPath ? `
+          <input 
+            type="text" 
+            id="path-input" 
+            value="${effectivePath}"
+            placeholder="/path"
+            ${isPathDisabled ? 'disabled' : ''}
+          />
+          ` : ''}
+        </div>
+        
+        <div class="description">${description}</div>
       </div>
-      <div class="description" id="description">${this.getDescription()}</div>
     `;
-    
-    // Attach listeners after render
-    this.attachEventListeners();
-    
-    // Emit initial value
-    this.emitChange();
   }
   
   attachEventListeners() {
     const select = this.shadowRoot.getElementById('mental-space');
-    const input = this.shadowRoot.getElementById('path-input');
+    const pathInput = this.shadowRoot.getElementById('path-input');
     
-    select?.addEventListener('change', (e) => {
-      this._mentalSpace = e.target.value;
-      
-      // Update description
-      const desc = this.shadowRoot.getElementById('description');
-      if (desc) desc.textContent = this.getDescription();
-      
-      this.emitChange();
-    });
-    
-    input?.addEventListener('input', (e) => {
-      let value = e.target.value;
-      
-      // Ensure leading slash
-      if (value && !value.startsWith('/')) {
-        value = '/' + value;
-        e.target.value = value;
-      }
-      
-      this._path = value || '/';
-      this.emitChange();
-    });
-    
-    input?.addEventListener('blur', (e) => {
-      // Normalize on blur
-      const normalized = this.normalizePath(e.target.value);
-      if (normalized !== e.target.value) {
-        e.target.value = normalized;
-        this._path = normalized;
+    if (select) {
+      select.addEventListener('change', (e) => {
+        this._mentalSpace = e.target.value;
+        this.render();
         this.emitChange();
-      }
-    });
+      });
+    }
+    
+    if (pathInput && this._pathEditable && this._pathValue === null) {
+      pathInput.addEventListener('input', (e) => {
+        let value = e.target.value;
+        
+        if (!value.startsWith('/')) {
+          value = '/' + value;
+          e.target.value = value;
+        }
+        
+        this._path = value;
+        this.emitChange();
+      });
+    }
   }
   
   emitChange() {
     this.dispatchEvent(new CustomEvent('graph-changed', {
       detail: {
         mentalSpace: this._mentalSpace,
-        path: this._path,
+        path: this.path,
         fullUri: this.getFullUri()
       },
       bubbles: true,
       composed: true
     }));
   }
-  
-  // Public API methods
-  getValue() {
-    return this.getFullUri();
-  }
-  
-  setValue(uri) {
-    this.value = uri;
-  }
 }
 
 customElements.define('mntl-space-fab', MntlSpaceFabWC);
-
-export { MntlSpaceFabWC, DEFAULT_ACCEPTED_TYPES };

@@ -3,73 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mental Space Fab - Demo</title>
+    <title>Mental Space Fab - Examples</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             max-width: 900px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            background: #f5f5f5;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            line-height: 1.6;
         }
+        
         h1 {
-            text-align: center;
             color: #333;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 0.5rem;
         }
+        
         .demo-section {
-            background: white;
-            padding: 30px;
-            margin: 20px 0;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: #fafafa;
         }
-        .output {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            font-family: 'Monaco', monospace;
-            margin-top: 15px;
-            border-left: 4px solid #007bff;
+        
+        h2 {
+            margin-top: 0;
+            color: #0066cc;
         }
+        
         .label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 10px;
             display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #555;
         }
+        
+        .output {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
         button {
-            margin: 5px;
-            padding: 8px 16px;
-            background: #007bff;
+            margin: 0.5rem 0.5rem 0 0;
+            padding: 0.5rem 1rem;
+            background: #0066cc;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 0.9rem;
         }
+        
         button:hover {
-            background: #0056b3;
+            background: #0052a3;
+        }
+        
+        .code {
+            background: #f5f5f5;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
         }
     </style>
 </head>
 <body>
-    <h1>🎛️ Mental Space Fab Demo</h1>
+    <h1>🧠 Mental Space Fab - Examples</h1>
     
     <div class="demo-section">
-        <h2>Basic Usage</h2>
-        <label class="label">Select a graph:</label>
+        <h2>Demo 1: Basic Usage</h2>
+        <label class="label">Default behavior - fully editable:</label>
         <mntl-space-fab id="fab1"></mntl-space-fab>
         <div class="output" id="output1">Selected: (loading...)</div>
     </div>
     
     <div class="demo-section">
-        <h2>With Identity</h2>
+        <h2>Demo 2: With Identity</h2>
         <label class="label">Authenticated as alice@example.com:</label>
         <mntl-space-fab id="fab2"></mntl-space-fab>
         <div class="output" id="output2">Selected: (loading...)</div>
     </div>
     
     <div class="demo-section">
-        <h2>Programmatic Control</h2>
+        <h2>Demo 3: Programmatic Control</h2>
         <button onclick="setScience()">Set to Science</button>
         <button onclick="setAliceNotes()">Set to Alice's Notes</button>
         <button onclick="getValue()">Get Current Value</button>
@@ -78,9 +100,31 @@
         <div class="output" id="output3">Selected: (loading...)</div>
     </div>
     
+    <div class="demo-section">
+        <h2>Demo 4: Read-Only Path <span class="code">pathValue='/alias'</span></h2>
+        <label class="label">Path is locked to '/alias' (cannot be edited):</label>
+        <mntl-space-fab id="fab4"></mntl-space-fab>
+        <div class="output" id="output4">Selected: (loading...)</div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Demo 5: Disabled Path <span class="code">pathEditable=false</span></h2>
+        <label class="label">Path input is disabled but visible:</label>
+        <mntl-space-fab id="fab5"></mntl-space-fab>
+        <button onclick="toggleEditable()">Toggle pathEditable</button>
+        <div class="output" id="output5">Selected: (loading...)</div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Demo 6: Hidden Path <span class="code">showPath=false</span></h2>
+        <label class="label">Path input is completely hidden:</label>
+        <mntl-space-fab id="fab6"></mntl-space-fab>
+        <button onclick="toggleShowPath()">Toggle showPath</button>
+        <div class="output" id="output6">Selected: (loading...)</div>
+    </div>
+    
     <script type="module" src="../src/mntl-space-fab.js"></script>
     <script>
-        // Wait for component to be defined
         customElements.whenDefined('mntl-space-fab').then(() => {
             // Demo 1: Basic
             const fab1 = document.getElementById('fab1');
@@ -90,7 +134,6 @@
                 output1.textContent = `Selected: ${e.detail.fullUri}`;
             });
             
-            // Trigger initial update
             setTimeout(() => {
                 output1.textContent = `Selected: ${fab1.getValue()}`;
             }, 100);
@@ -100,45 +143,113 @@
             const output2 = document.getElementById('output2');
             
             fab2.currentIdentity = 'mailto:alice@example.com';
-            fab2.value = 'mntl:open/alice/notes';
+            fab2.acceptedTypes = [
+                { value: 'mntl:open', label: 'mntl:open/{identity}',
+                  description: 'mntl:open - Owned by you, readable by the world' },
+                { value: 'mntl:gate', label: 'mntl:gate/{identity}',
+                  description: 'mntl:gate - Readable by those you grant access' },
+                { value: 'mntl:publ', label: 'mntl:publ',
+                  description: 'mntl:publ - A true public commons' }
+            ];
             
             fab2.addEventListener('graph-changed', (e) => {
                 output2.textContent = `Selected: ${e.detail.fullUri}`;
             });
             
-            // Trigger initial update
             setTimeout(() => {
                 output2.textContent = `Selected: ${fab2.getValue()}`;
             }, 100);
             
-            // Demo 3: Programmatic
+            // Demo 3: Programmatic Control
             const fab3 = document.getElementById('fab3');
             const output3 = document.getElementById('output3');
             
             fab3.currentIdentity = 'mailto:alice@example.com';
+            fab3.acceptedTypes = [
+                { value: 'mntl:open', label: 'mntl:open/{identity}',
+                  description: 'mntl:open - Owned by you, readable by the world' },
+                { value: 'mntl:publ', label: 'mntl:publ',
+                  description: 'mntl:publ - A true public commons' }
+            ];
             
             fab3.addEventListener('graph-changed', (e) => {
                 output3.textContent = `Selected: ${e.detail.fullUri}`;
             });
             
-            // Trigger initial update
             setTimeout(() => {
                 output3.textContent = `Selected: ${fab3.getValue()}`;
             }, 100);
+            
+            // Demo 4: Read-Only Path (pathValue)
+            const fab4 = document.getElementById('fab4');
+            const output4 = document.getElementById('output4');
+            
+            fab4.pathValue = '/alias';
+            
+            fab4.addEventListener('graph-changed', (e) => {
+                output4.textContent = `Selected: ${e.detail.fullUri}`;
+            });
+            
+            setTimeout(() => {
+                output4.textContent = `Selected: ${fab4.getValue()}`;
+            }, 100);
+            
+            // Demo 5: Non-Editable Path (pathEditable)
+            const fab5 = document.getElementById('fab5');
+            const output5 = document.getElementById('output5');
+            
+            fab5.value = 'mntl:publ/example/path';
+            fab5.pathEditable = false;
+            
+            fab5.addEventListener('graph-changed', (e) => {
+                output5.textContent = `Selected: ${e.detail.fullUri}`;
+            });
+            
+            setTimeout(() => {
+                output5.textContent = `Selected: ${fab5.getValue()}`;
+            }, 100);
+            
+            // Demo 6: Hidden Path (showPath)
+            const fab6 = document.getElementById('fab6');
+            const output6 = document.getElementById('output6');
+            
+            fab6.showPath = false;
+            
+            fab6.addEventListener('graph-changed', (e) => {
+                output6.textContent = `Selected: ${e.detail.fullUri}`;
+            });
+            
+            setTimeout(() => {
+                output6.textContent = `Selected: ${fab6.getValue()}`;
+            }, 100);
         });
         
+        // Demo 3 functions
         function setScience() {
-            document.getElementById('fab3').value = 'mntl:publ/science';
+            const fab = document.getElementById('fab3');
+            fab.value = 'mntl:publ/science/research';
         }
         
         function setAliceNotes() {
             const fab = document.getElementById('fab3');
-            fab.value = 'mntl:open/alice/notes';
+            fab.value = 'mntl:open/alice@example.com/notes';
         }
         
         function getValue() {
-            const value = document.getElementById('fab3').getValue();
-            alert('Current value: ' + value);
+            const fab = document.getElementById('fab3');
+            alert(`Current value: ${fab.getValue()}`);
+        }
+        
+        // Demo 5 function
+        function toggleEditable() {
+            const fab = document.getElementById('fab5');
+            fab.pathEditable = !fab.pathEditable;
+        }
+        
+        // Demo 6 function
+        function toggleShowPath() {
+            const fab = document.getElementById('fab6');
+            fab.showPath = !fab.showPath;
         }
     </script>
 </body>
