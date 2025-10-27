@@ -159,7 +159,7 @@ class MntlSpaceFabWC extends HTMLElement {
   getValue() {
     return this.getFullUri();
   }
-  
+
   render() {
     const currentType = this._acceptedTypes.find(t => t.value === this._mentalSpace);
     const description = currentType ? currentType.description : '';
@@ -168,105 +168,108 @@ class MntlSpaceFabWC extends HTMLElement {
     const isPathDisabled = this._pathValue !== null || !this._pathEditable;
     
     this.shadowRoot.innerHTML = `
-      <style>
-        :host {
-          display: block;
-          font-family: system-ui, -apple-system, sans-serif;
-        }
-        
-        .container {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        
-        .input-row {
-          display: flex;
-          gap: 0;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          overflow: hidden;
-          background: white;
-        }
-        
-        .input-row:focus-within {
-          outline: 2px solid #0066cc;
-          outline-offset: 1px;
-        }
-        
-        select {
-          flex: 0 0 auto;
-          padding: 0.5rem;
-          border: none;
-          background: white;
-          font-size: 0.9rem;
-          cursor: pointer;
-          outline: none;
-        }
-        
-        select:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-        
-        input {
-          flex: 1;
-          padding: 0.5rem;
-          border: none;
-          border-left: 1px solid #e0e0e0;
-          font-size: 0.9rem;
-          outline: none;
-          font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-        }
-        
-        input:disabled {
-          background: #f5f5f5;
-          color: #666;
-          cursor: not-allowed;
-        }
-        
-        .description {
-          font-size: 0.85rem;
-          color: #666;
-          padding: 0.25rem 0.5rem;
-        }
-      </style>
+    <style>
+      :host {
+        display: block;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
       
-      <div class="container">
-        <div class="input-row">
-          <select id="mental-space">
-            ${this._acceptedTypes.map(type => {
-              const needsId = this.needsIdentity(type);
-              const disabled = needsId && !this._currentIdentity;
-              const label = type.label.replace('{identity}', 
-                this._currentIdentity ? this._currentIdentity.replace(/^mailto:/, '') : '{identity}');
-              
-              return `
-                <option 
-                  value="${type.value}" 
-                  ${type.value === this._mentalSpace ? 'selected' : ''}
-                  ${disabled ? 'disabled' : ''}
-                >
-                  ${label}
-                </option>
-              `;
-            }).join('')}
-          </select>
-          
-          ${this._showPath ? `
-          <input 
-            type="text" 
-            id="path-input" 
-            value="${effectivePath}"
-            placeholder="/path"
-            ${isPathDisabled ? 'disabled' : ''}
-          />
-          ` : ''}
-        </div>
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      .input-row {
+        display: flex;
+        gap: 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        overflow: hidden;
+        background: white;
+      }
+      
+      .input-row:focus-within {
+        outline: 2px solid #0066cc;
+        outline-offset: 1px;
+      }
+      
+      select {
+        flex: 0 0 auto;
+        padding: 0.5rem;
+        border: none;
+        background: white;
+        font-size: 0.9rem;
+        cursor: pointer;
+        outline: none;
+      }
+      
+      select:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      
+      input {
+        flex: 1;
+        padding: 0.5rem;
+        border: none;
+        border-left: 1px solid #e0e0e0;
+        font-size: 0.9rem;
+        outline: none;
+        font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      }
+      
+      input:disabled {
+        background: #f5f5f5;
+        color: #666;
+        cursor: not-allowed;
+      }
+      
+      .description {
+        font-size: 0.85rem;
+        color: #666;
+        padding: 0.25rem 0.5rem;
+      }
+    </style>
+    
+    <div class="container">
+      <div class="input-row">
+        <select id="mental-space">
+          ${this._acceptedTypes.map(type => {
+            const needsId = this.needsIdentity(type);
+            const disabled = needsId && !this._currentIdentity;
+            const label = type.label.replace('{identity}', 
+              this._currentIdentity ? this._currentIdentity.replace(/^mailto:/, '') : '{identity}');
+            
+            return `
+      <option 
+    value="${type.value}" 
+    ${type.value === this._mentalSpace ? 'selected' : ''}
+    ${disabled ? 'disabled' : ''}
+      >
+      ${label}
+    </option>
+      `;
+          }).join('')}
+        </select>
         
-        <div class="description">${description}</div>
+        ${this._showPath ? `
+      <input 
+    type="text" 
+    id="path-input" 
+    value="${effectivePath}"
+    placeholder="/path"
+    ${isPathDisabled ? 'disabled' : ''}
+      />
+      ` : ''}
       </div>
-    `;
+      
+      <div class="description">${description}</div>
+    </div>
+  `;
+    
+    // CRITICAL FIX: Re-attach event listeners after every render
+    this.attachEventListeners();
   }
   
   attachEventListeners() {
