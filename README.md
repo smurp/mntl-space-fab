@@ -165,7 +165,7 @@ By default, only these types are enabled (due to security considerations):
 
 ## Security Considerations
 
-Types that require identity (like `mntl:open`, `mntl:gate`) are automatically:
+Types that require identity (like `mntl:open`, `mntl:rbac`) are automatically:
 - **Disabled** when `currentIdentity` is `null`
 - **Auto-switched** to `mntl:publ` if currently selected and identity becomes `null`
 - Shown as grayed out and italic in the dropdown
