@@ -1,5 +1,5 @@
 {
-  "name": "@mmmlib/mntl-space-fab",
+  "name": "@mmmttoys/mntl-space-fab",
   "version": "0.2.0",
   "description": "Web component for MMM mental space graph selection (mntl: URN picker)",
   "type": "module",
