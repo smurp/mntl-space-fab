@@ -28,9 +28,6 @@ class MntlSpaceFabWC extends HTMLElement {
     this._mentalSpace = 'mntl:publ';
     this._path = '/';
     
-    // an edit the user has not accepted yet
-    this._dirty = false;
-    
     // Path control properties
     this._pathValue = null;
     this._pathEditable = true;
@@ -67,8 +64,6 @@ class MntlSpaceFabWC extends HTMLElement {
   
   set value(uri) {
     this.parseUri(uri);
-    // the HOST speaking, not the user: nothing here is awaiting acceptance
-    this._dirty = false;
     this.render();
   }
   
@@ -201,8 +196,16 @@ class MntlSpaceFabWC extends HTMLElement {
         outline-offset: 1px;
       }
       
+      /* THE ACCEPT MUST NEVER BE WHAT OVERFLOWS. The row clips
+         (overflow:hidden), and a flex item defaults to min-width:auto —
+         it will not shrink below its content. With the select at
+         0 0 auto, a long scope name (mntl:priv/iii:root) pushed the
+         button clean outside the row, where it was invisible to a click
+         and read as disabled. The two text controls shrink; the control
+         you press does not. */
       select {
-        flex: 0 0 auto;
+        flex: 0 1 auto;
+        min-width: 4.5rem;
         padding: 0.5rem;
         border: none;
         background: white;
@@ -217,7 +220,8 @@ class MntlSpaceFabWC extends HTMLElement {
       }
       
       input {
-        flex: 1;
+        flex: 1 1 auto;
+        min-width: 3rem;
         padding: 0.5rem;
         border: none;
         border-left: 1px solid #e0e0e0;
@@ -254,9 +258,12 @@ class MntlSpaceFabWC extends HTMLElement {
       }
       button.accept:hover { background: #e8e8e8; color: #000; }
       button.accept:focus-visible { outline: 2px solid #0066cc; outline-offset: -2px; }
-      /* edited but not yet accepted: the button is where the eye should go */
-      button.accept.dirty { background: #0066cc; color: #fff; }
-      button.accept.dirty:hover { background: #0055aa; }
+      /* THERE IS SOMETHING TO ACCEPT — which is true on arrival, because
+         the offered value is already valid. Blue says the press will do
+         something, and it is the commonest press on this control. */
+      button.accept.ready { background: #0066cc; color: #fff; }
+      button.accept.ready:hover { background: #0055aa; }
+      button.accept:disabled { opacity: 0.45; cursor: not-allowed; }
 
       .description {
         font-size: 0.85rem;
@@ -298,7 +305,8 @@ class MntlSpaceFabWC extends HTMLElement {
         <button
     type="button"
     id="accept"
-    class="accept${this._dirty ? ' dirty' : ''}"
+    class="accept${this.isValid() ? ' ready' : ''}"
+    ${this.isValid() ? '' : 'disabled'}
     title="use this mental space"
     aria-label="use this mental space"
       >✓</button>
@@ -310,6 +318,7 @@ class MntlSpaceFabWC extends HTMLElement {
     
     // CRITICAL FIX: Re-attach event listeners after every render
     this.attachEventListeners();
+    this._syncAccept();
   }
   
   attachEventListeners() {
@@ -327,7 +336,6 @@ class MntlSpaceFabWC extends HTMLElement {
     if (select) {
       select.addEventListener('change', (e) => {
         this._mentalSpace = e.target.value;
-        this._dirty = true;
         this.render();                 // the description follows the scope
         this.shadowRoot.getElementById('mental-space')?.focus();
       });
@@ -343,8 +351,7 @@ class MntlSpaceFabWC extends HTMLElement {
         }
         
         this._path = value;
-        this._dirty = true;
-        accept?.classList.add('dirty');   // no re-render: it would eat the caret
+        this._syncAccept();               // no re-render: it would eat the caret
       });
       pathInput.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter') return;
@@ -357,13 +364,48 @@ class MntlSpaceFabWC extends HTMLElement {
   }
   
   /**
+   * Is there something here worth accepting? A scope that is chosen and
+   * open to this identity, and a path that is a path.
+   *
+   * THIS IS WHAT THE BUTTON'S COLOUR MEANS, and the meaning smurp asked
+   * for twice: blue on ARRIVAL, because the offered value is already a
+   * valid one and pressing it is the commonest thing a person will do
+   * here. Not "you have edited something" — a pending edit and an
+   * untouched suggestion are both waiting on the same press.
+   */
+  isValid() {
+    const type = this._acceptedTypes.find(t => t.value === this._mentalSpace);
+    if (!type) return false;
+    if (this.needsIdentity(type) && !this._currentIdentity) return false;
+    if (!this._showPath) return true;
+    const path = this._pathValue !== null ? this._pathValue : this._path;
+    return typeof path === 'string' && path.startsWith('/');
+  }
+  
+  /** The accept's look and reach follow validity, on arrival and after
+   *  every change — there is nothing to press when there is nothing to
+   *  accept. */
+  _syncAccept() {
+    const accept = this.shadowRoot?.getElementById('accept');
+    if (!accept) return;
+    const ok = this.isValid();
+    const type = this._acceptedTypes.find(t => t.value === this._mentalSpace);
+    accept.classList.toggle('ready', ok);
+    accept.disabled = !ok;
+    accept.title = ok ? 'use this mental space'
+      : (type && this.needsIdentity(type) && !this._currentIdentity)
+        ? 'sign in to use this kind of mental space'
+        : 'choose a mental space first';
+  }
+  
+  /**
    * The user's decision: emit what the controls now hold, whether or not
    * anything was edited — accepting the offered value is a choice too.
    */
   submit() {
-    this._dirty = false;
-    this.shadowRoot.getElementById('accept')?.classList.remove('dirty');
+    if (!this.isValid()) return null;
     this.emitChange();
+    return this.value;
   }
   
   emitChange() {
