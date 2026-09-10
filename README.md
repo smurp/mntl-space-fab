@@ -13,7 +13,7 @@ A standalone web component for selecting MMM mental space graphs (mntl: URN pick
 - 🔒 **Configurable types** - Inject only the mental space types you support
 - 🎨 **Identity-aware labels** - Shows {identity} in dropdown labels
 - 📖 **Descriptive hints** - Explains each mental space type
-- ✨ **Event-driven** - Emits graph-changed events
+- ✨ **Event-driven** - Emits `graph-changed` when the user ACCEPTS, not while they edit
 - 🎯 **Unified look** - Select and input boxes seamlessly joined
 - ✅ **Smart validation** - Enforces leading slash, disables types requiring identity when not logged in
 
@@ -142,8 +142,25 @@ By default, only these types are enabled (due to security considerations):
 
 ### Events
 
-- **`graph-changed`** - Fired when graph selection changes
+- **`graph-changed`** - Fired when the user ACCEPTS a mental space
   - `detail: { mentalSpace, path, fullUri }`
+
+**An edit is not a decision.** Choosing a scope or typing a
+path changes the element's state and emits nothing; `graph-changed` is fired
+when the user presses the ✓ at the end of the row, or Enter in the path.
+Pressing ✓ with nothing edited fires too — accepting the value that was
+offered is a choice, and it is the commonest one.
+
+Previously the select emitted on `change` and the path on every keystroke,
+which re-aimed the consumer per character (and, in a consumer that writes
+the choice down, wrote it per character); there was no way to accept an
+offered value at all. Consumers that debounced `graph-changed` no longer
+need to.
+
+- **`submit()`** - the accept, as a method: emits `graph-changed` with
+  whatever the controls now hold.
+- Setting `.value` is the HOST speaking, not the user: it never emits, and
+  it clears the pending-edit state.
 
 ## URI Format
 

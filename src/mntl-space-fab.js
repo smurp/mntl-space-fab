@@ -28,6 +28,9 @@ class MntlSpaceFabWC extends HTMLElement {
     this._mentalSpace = 'mntl:publ';
     this._path = '/';
     
+    // an edit the user has not accepted yet
+    this._dirty = false;
+    
     // Path control properties
     this._pathValue = null;
     this._pathEditable = true;
@@ -64,6 +67,8 @@ class MntlSpaceFabWC extends HTMLElement {
   
   set value(uri) {
     this.parseUri(uri);
+    // the HOST speaking, not the user: nothing here is awaiting acceptance
+    this._dirty = false;
     this.render();
   }
   
@@ -106,8 +111,10 @@ class MntlSpaceFabWC extends HTMLElement {
   }
   
   connectedCallback() {
+    // render() ends by attaching; attaching again here bound every
+    // listener TWICE to the same nodes, so each change emitted
+    // graph-changed twice and each keystroke re-aimed the host twice over
     this.render();
-    this.attachEventListeners();
   }
   
   needsIdentity(type) {
@@ -225,6 +232,32 @@ class MntlSpaceFabWC extends HTMLElement {
         cursor: not-allowed;
       }
       
+      /* THE ACCEPT. Every edit here is a decision the user has not made
+         yet — picking a scope, typing a path — and each emitted change
+         re-aims a host and opens a subscription. So the row ends in a
+         control that says "this one", pressable even when nothing was
+         edited, because the commonest case is that the offered value is
+         already right. */
+      button.accept {
+        flex: 0 0 auto;
+        border: none;
+        border-left: 1px solid #e0e0e0;
+        background: #f5f5f5;
+        color: #444;
+        font: inherit;
+        font-size: 1rem;
+        line-height: 1;
+        padding: 0 0.7rem;
+        cursor: pointer;
+        min-width: 2.6rem;
+        min-height: 2.4rem;      /* a thumb, not a mouse pointer */
+      }
+      button.accept:hover { background: #e8e8e8; color: #000; }
+      button.accept:focus-visible { outline: 2px solid #0066cc; outline-offset: -2px; }
+      /* edited but not yet accepted: the button is where the eye should go */
+      button.accept.dirty { background: #0066cc; color: #fff; }
+      button.accept.dirty:hover { background: #0055aa; }
+
       .description {
         font-size: 0.85rem;
         color: #666;
@@ -262,6 +295,13 @@ class MntlSpaceFabWC extends HTMLElement {
     ${isPathDisabled ? 'disabled' : ''}
       />
       ` : ''}
+        <button
+    type="button"
+    id="accept"
+    class="accept${this._dirty ? ' dirty' : ''}"
+    title="use this mental space"
+    aria-label="use this mental space"
+      >✓</button>
       </div>
       
       <div class="description">${description}</div>
@@ -276,11 +316,20 @@ class MntlSpaceFabWC extends HTMLElement {
     const select = this.shadowRoot.getElementById('mental-space');
     const pathInput = this.shadowRoot.getElementById('path-input');
     
+    const accept = this.shadowRoot.getElementById('accept');
+    
+    // AN EDIT IS NOT A DECISION. The scope and the path change this
+    // element's state and nothing else; graph-changed is emitted when the
+    // user says so, by the accept control or by Enter in the path. Before
+    // this the select emitted on change and the path on every keystroke,
+    // which re-aimed the host per character and left the commonest case —
+    // the offered value is already right — with no gesture at all.
     if (select) {
       select.addEventListener('change', (e) => {
         this._mentalSpace = e.target.value;
-        this.render();
-        this.emitChange();
+        this._dirty = true;
+        this.render();                 // the description follows the scope
+        this.shadowRoot.getElementById('mental-space')?.focus();
       });
     }
     
@@ -294,9 +343,27 @@ class MntlSpaceFabWC extends HTMLElement {
         }
         
         this._path = value;
-        this.emitChange();
+        this._dirty = true;
+        accept?.classList.add('dirty');   // no re-render: it would eat the caret
+      });
+      pathInput.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        this.submit();
       });
     }
+    
+    if (accept) accept.addEventListener('click', () => this.submit());
+  }
+  
+  /**
+   * The user's decision: emit what the controls now hold, whether or not
+   * anything was edited — accepting the offered value is a choice too.
+   */
+  submit() {
+    this._dirty = false;
+    this.shadowRoot.getElementById('accept')?.classList.remove('dirty');
+    this.emitChange();
   }
   
   emitChange() {
